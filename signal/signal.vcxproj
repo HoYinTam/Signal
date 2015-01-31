@@ -62,9 +62,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Classifier.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TLD.cpp" />
+    <ClCompile Include="Tracker.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Classifier.h" />
+    <ClInclude Include="TLD.h" />
+    <ClInclude Include="Tracker.h" />
     <ClInclude Include="utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -18,10 +18,28 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TLD.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Tracker.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classifier.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TLD.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classifier.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Tracker.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
