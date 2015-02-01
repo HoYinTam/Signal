@@ -1,6 +1,7 @@
 #include<opencv2/opencv.hpp>
 #include<iostream>
 #include<cstring>
+#include"TLD.h"
 #include "utility.h"
 using namespace std;
 using namespace cv;
@@ -110,18 +111,19 @@ int main(int argc,char * argv[]){
 	cout<<"ROI\n"<<"x:"<<ROI.x<<"  "<<"y:"<<ROI.y<<"  "<<"width:"<<ROI.width<<"  "<<"height:"<<ROI.height<<endl;
 	cvSetMouseCallback("TLD",NULL,NULL); //remove mouse control
 	//TO-DO: TLD initalization
-
+	TLD tld;
+	tld.init(last_gray,ROI);
 	///Runtime
 	Mat now_gray;
 	vector<Point2f> pv1,pv2;
-	Rect pROI;
+	window next;
 	bool state=true;
 	int frame_count=1,detected_count=1;
 	while(capture.read(frame)){
 		//modify frame
 		cvtColor(frame,now_gray,CV_RGB2GRAY);
 		//TO-DO:process
-
+		tld.FrameProcess(last_gray,now_gray,pv1,pv2,next,state);
 		//drawing
 		if(state){
 			drawCircle(frame,pv1,Scalar(255,0,0));
