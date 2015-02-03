@@ -128,7 +128,7 @@ int main(int argc,char * argv[]){
 		if(state){
 			drawCircle(frame,pv1,Scalar(255,0,0));
 			drawCircle(frame,pv2,Scalar(0,255,0));
-			rectangle(frame,pROI,Scalar(0,0,255));
+			rectangle(frame,next,Scalar(0,0,255));
 			detected_count++;
 		}
 		imshow("TLD",frame);

@@ -15,7 +15,7 @@ public:
 };
 
 struct detection{
-	vector<int> bb;
+	vector<int> win;
 	vector<vector<int>> pattern;
 	vector<float> conf1;
 	vector<float> conf2;
@@ -108,8 +108,7 @@ class TLD{
 		void generateNdata(const Mat& frame);
 		void track(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2);
 		void detect(const Mat& frame);
-		void clusterConf(const vector<window>& detectWindow,const vector<float>& detectConf,std::vector<window>& confWindow,std::vector<float>& conf);
-		void evaluate();
+		void clusterConf(const vector<window>& detectWindow,const vector<float>& detectConf,std::vector<window>& clusterWindow,std::vector<float>& cConf);
 		void learn(const Mat& img);
 		void FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2,window& next,bool& lastWindowfound);
 		//useful tool
@@ -121,6 +120,6 @@ class TLD{
 		void winPoint(vector<Point2f>points,const window& win);
 		void winPredict(const vector<Point2f> &ps1,const vector<Point2f> &ps2,const window& win1,window& win2);
 		double getVar(const window& win,const Mat& sum,const Mat& sqsum);
-		bool winComp(const window& win1,const window& win2);
+		bool winCmp(const window& win1,const window& win2);
 		int  clusterWin(const vector<window>& detectWindow,vector<int>& index);
 };
