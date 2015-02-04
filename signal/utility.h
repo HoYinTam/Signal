@@ -1,32 +1,12 @@
 #include <opencv2/opencv.hpp>
-#include<algorithm>
 #pragma once
 using namespace cv;
 using namespace std;
 
-double round(double r){
-    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
-}
+double round(double r);
 
-void drawCircle(Mat& image, vector<Point2f> points,Scalar color){
-  for( vector<Point2f>::const_iterator i = points.begin(), ie = points.end(); i != ie; ++i )
-      {
-      Point center( cvRound(i->x ), cvRound(i->y));
-      circle(image,*i,2,color,1);
-      }
-}
+void drawCircle(Mat& image, vector<Point2f> points,Scalar color);
 
-vector<int> index_shuffle(int begin,int end){
-  vector<int> indexes(end-begin);
-  for (int i=begin;i<end;i++){
-    indexes[i]=i;
-  }
-  random_shuffle(indexes.begin(),indexes.end());
-  return indexes;
-}
-
-float median(vector<float> v){
-    int n = floor(v.size() / 2);
-    nth_element(v.begin(), v.begin()+n, v.end());
-    return v[n];
-}
+vector<int> index_shuffle(int begin,int end);
+  
+float median(vector<float> v);   

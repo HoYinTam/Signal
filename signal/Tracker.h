@@ -1,6 +1,5 @@
 #include <opencv2/opencv.hpp>
-#include<vector>
-#pragma once
+#include "utility.h"
 using namespace cv;
 using namespace std;
 class Tracker{

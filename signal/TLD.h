@@ -1,10 +1,10 @@
 #include<opencv2/opencv.hpp>
 #include <opencv2/legacy/legacy.hpp>
-#include<vector>
-#include "Classifier.h";
-#include "Tracker.h";
-#pragma once
+#include "Classifier.h"
+#include "Tracker.h"
+
 using namespace cv;
+
 
 struct window:public Rect{ //the slide window for operation
 	window(){}
@@ -106,20 +106,19 @@ class TLD{
 		void init(const Mat& frame,const Rect& ROI);
 		void generatePdata(const Mat& frame,int num_wraps);
 		void generateNdata(const Mat& frame);
-		void track(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2);
+		void track(const Mat& img1,const Mat& img2,vector<Point2f>&ps1,vector<Point2f>&ps2);
 		void detect(const Mat& frame);
 		void clusterConf(const vector<window>& detectWindow,const vector<float>& detectConf,std::vector<window>& clusterWindow,std::vector<float>& cConf);
 		void learn(const Mat& img);
-		void FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2,window& next,bool& lastWindowfound);
+		void FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>&ps1,vector<Point2f>&ps2,window& next,bool& lastWindowfound);
 		//useful tool
 		void buildgrid(const Mat& img,const Rect& ROI);
 		float winOverlap(const window& win1,const window& win2);
 		void getOverlapWin(const window& win,int num_closet);
 		void getHull();
 		void getPattern(const Mat& img,Mat& pattern,Scalar& mean,Scalar& stdev);
-		void winPoint(vector<Point2f>points,const window& win);
+		void winPoint(vector<Point2f>&points,const window& win);
 		void winPredict(const vector<Point2f> &ps1,const vector<Point2f> &ps2,const window& win1,window& win2);
 		double getVar(const window& win,const Mat& sum,const Mat& sqsum);
-		bool winCmp(const window& win1,const window& win2);
-		int  clusterWin(const vector<window>& detectWindow,vector<int>& index);
+		//bool winCmp(const window& win1,const window& win2);
 };

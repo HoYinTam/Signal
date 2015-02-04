@@ -66,6 +66,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TLD.cpp" />
     <ClCompile Include="Tracker.cpp" />
+    <ClCompile Include="utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Classifier.h" />

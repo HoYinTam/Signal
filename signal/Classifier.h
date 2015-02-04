@@ -1,6 +1,6 @@
-#pragma once
+
 #include <opencv2/opencv.hpp>
-#include<vector>
+#include<iostream>
 using namespace std;
 using namespace cv;
 class Classifier{
@@ -19,7 +19,7 @@ public:
 	void update(const vector<int>& fern, int C, int N);
 	void trainFern(const vector<std::pair<std::vector<int>,int> >& fern_data,int resample);
 	void trainNN(const vector<cv::Mat>& nn_data);
-	void evaluate(const vector<pair<vector<int>,int> >& nNN,const vector<cv::Mat>& nNNT);
+	void evaluate(const vector<pair<vector<int>,int> >& nFernT,const vector<cv::Mat>& nNNT);
 	void getFeatures(const cv::Mat& image,const int& scale_idx,std::vector<int>& fern);
 	void NNConf(const Mat& example,vector<int>& isin,float& rsconf,float& csconf);
 	float measure_forest(vector<int> fern);

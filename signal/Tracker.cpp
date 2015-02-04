@@ -1,8 +1,8 @@
 #include"Tracker.h"
-#include"utility.h"
 
 using namespace std;
 using namespace cv;
+
 
 Tracker::Tracker(){
 	term_criteria=TermCriteria(TermCriteria::COUNT+TermCriteria::EPS,20,0.03);
@@ -28,6 +28,7 @@ void Tracker::normCrossCorrelation(const Mat &img1,const Mat &img2,vector<Point2
 	Mat rec0(10,10,CV_8U);
 	Mat rec1(10,10,CV_8U);
 	Mat res(1,1,CV_32F);
+	
 	for(int i=0;i<ps1.size();i++){
 		if(status[i]==1){//feature points track succeed
 			getRectSubPix(img1,Size(10,10),ps1[i],rec0);
@@ -56,7 +57,9 @@ bool Tracker::filterPts(vector<Point2f>&ps1,vector<Point2f>&ps2){
 			k++;
 		}
 	}
-	if(k==0) return false;
+	if(k==0) {
+		return false;
+	}
 	ps1.resize(k);
 	ps2.resize(k);
 	FB_error.resize(k);
@@ -66,8 +69,8 @@ bool Tracker::filterPts(vector<Point2f>&ps1,vector<Point2f>&ps2){
 	for(i=k=0;i<ps2.size();i++){
 		if(!status[i]) continue;
 		if(FB_error[i] <= fbmed){
-			ps1[k]=ps[i];
-			ps2[k]=ps[i];
+			ps1[k]=ps1[i];
+			ps2[k]=ps2[i];
 			k++;
 		}
 	}

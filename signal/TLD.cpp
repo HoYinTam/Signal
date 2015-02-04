@@ -1,5 +1,7 @@
 #include"TLD.h"
-#include"utility.h"
+#include<iostream>
+#include<cstdio>
+#include<algorithm>
 using namespace cv;
 using namespace std;
 
@@ -10,6 +12,7 @@ TLD::TLD(){
 	noise=5;
 	angle=10;
 	shift=0.02;
+	scale=0.02;
 	bad_overlap=0.2;
 	bad_patches=100;
 	classifier=Classifier();
@@ -18,33 +21,44 @@ TLD::TLD(){
 void TLD::init(const Mat& frame,const Rect& ROI){
 	//get slide window
 	buildgrid(frame,ROI);
+	printf("Created %d bounding boxes\n",(int)grid.size());
 	///preparation
 	//memory allocation
-	iisum.create(frame.row+1,frame.col+1,CV_32F);
-	iisqsum.create(frame.row+1,frame.col+1,CV_32F);
+	iisum.create(frame.rows+1,frame.cols+1,CV_32F);
+	iisqsum.create(frame.rows+1,frame.cols+1,CV_32F);
 	detectConf.reserve(100);
 	detectWindow.reserve(100);
 	step=7;
-	temp.conf.reserve(grid.size());
-	temp.pattern.reserve(grid.size());
-	dt.bb.reserve(grid.size());
+
+	temp.conf=vector<float>(grid.size());
+	temp.pattern=vector<vector<int>>(grid.size());
+
+	dt.win.reserve(grid.size());
 	goodWindow.reserve(grid.size());
 	badWindow.reserve(grid.size());
 	pNN.create(patch_size,patch_size,CV_64F);
 	//Init generator
-	generator=PatchGenerator(0,0,5,true,1-0.02,1+0.02,-20/CV_PI*180,20/CV_PI*180,-20/CV_PI*180,20/CV_PI*180);
+	cout<<"Init generator\n";
+	generator=PatchGenerator(0,0,5,true,1-0.02,1+0.02,-20*CV_PI/180,20*CV_PI/180,-20*CV_PI/180,20*CV_PI/180);
 	getOverlapWin(ROI,10);
+	printf("Found %d goodWindow, %d badWindow\n",(int)goodWindow.size(),(int)badWindow.size());
+	printf("BestWindow: %d %d %d %d\n",bestWindow.x,bestWindow.y,bestWindow.width,bestWindow.height);
+	printf("Bounding hull: %d %d %d %d\n",hull.x,hull.y,hull.width,hull.height);
 	//correct window
 	lastWindow=bestWindow;
 	lastConf=1;
 	lastValid=true;
+	//prepare classifier
+	classifier.prepare(scales);
 	///generate positive data
-	generatePdata(frame(bestWindow),20);
+	cout<<"generate\n";
+	generatePdata(frame,20);
 	//set variance thresold
 	Scalar stdev,mean;
-	meanStdDev(frame,mean,stdev);
+	cout<<"set variance thresold\n";
+	meanStdDev(frame(bestWindow),mean,stdev);
 	integral(frame,iisum,iisqsum);
-	var=getVar(bestWindow,isum,iisqsum)*0.5;
+	var=getVar(bestWindow,iisum,iisqsum)*0.5;
 	//generate negative data
 	generateNdata(frame);
 	//Split Negative Ferns into Training and Testing sets (they are already shuffled)
@@ -79,7 +93,9 @@ void TLD::init(const Mat& frame,const Rect& ROI){
 	classifier.trainFern(fern_data,2);//bootstep=2;
 	classifier.trainNN(NN_data);
 	///threshold evaluation
+	cout<<"threshold evaluation\n";
 	classifier.evaluate(nFernT,nNNt);
+	cout<<"init end\n";
 }
 
 void TLD::generatePdata(const Mat& frame,int num_wraps){
@@ -99,7 +115,7 @@ void TLD::generatePdata(const Mat& frame,int num_wraps){
 	int idx;
 	for(int i=0;i<num_wraps;i++){
 		if(i>0){
-			generator(img,pt,wraped,hull.size(),rng);
+			generator(frame,pt,wraped,hull.size(),rng);
 			for(int j=0;j<goodWindow.size();j++){
 				idx=goodWindow[j];
 				patch=img(grid[idx]);//get the goodWindow infomation
@@ -147,6 +163,7 @@ void TLD::generateNdata(const Mat& frame){
 }
 
 double TLD::getVar(const window& box,const Mat& sum,const Mat& sqsum){
+	
   double brs = sum.at<int>(box.y+box.height,box.x+box.width);
   double bls = sum.at<int>(box.y+box.height,box.x);
   double trs = sum.at<int>(box.y,box.x+box.width);
@@ -160,8 +177,9 @@ double TLD::getVar(const window& box,const Mat& sum,const Mat& sqsum){
   return sqmean-mean*mean;
 }
 
-void TLD::track(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2){
+void TLD::track(const Mat& img1,const Mat& img2,vector<Point2f>&ps1,vector<Point2f>&ps2){
 	//generate points
+	cout<<"generate points\n";
 	winPoint(ps1,lastWindow);
 	if(ps1.size()<1){
 		cout<<"Points didn't generated.\n";
@@ -171,6 +189,7 @@ void TLD::track(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2
 	}
 	vector<Point2f> ps=ps1;
 	//Frame-to-frame tracking with forward-backward error cheking
+	cout<<"frame-to-frame tracking\n";
 	tracked=tracker.trackf2f(img1,img2,ps,ps2);
 	if(tracked){
 		//window prediction
@@ -201,13 +220,13 @@ void TLD::track(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2
 }
 
 //gernernate 10*10 feature points in slide-window
-void TLD::winPoint(vector<Point2f>points,const window& win){
+void TLD::winPoint(vector<Point2f>&points,const window& win){
 	int max_pt=10;
 	int stepx=ceil(win.width/max_pt);
 	int stepy=ceil(win.height/max_pt);
 	for(int y=win.y;y<win.height+win.y;y+=stepy)
-		for(int x=win.x;y<win.width+win.x;x+=stepx)
-			points.push_back(Point2f(x,y));
+		for(int x=win.x;x<win.width+win.x;x+=stepx)
+			points.push_back(Point2f(x,y));			
 }
 
 void TLD::winPredict(const vector<Point2f> &ps1,const vector<Point2f> &ps2,const window& win1,window& win2){
@@ -242,13 +261,12 @@ void TLD::detect(const Mat& frame){
 	detectWindow.clear();
 	detectConf.clear();
 	dt.win.clear();
-
 	Mat img(frame.rows,frame.cols,CV_8U);
 	integral(frame,iisum,iisqsum);
 	GaussianBlur(frame,img,Size(9,9),1.5);
 	int numtrees=classifier.getNumStructs();
 	float fern_th=classifier.getFernTh();
-	vector<int>ferns(10);
+	vector<int> ferns(10);
 	float conf;
 	int a=0;
 	Mat patch;
@@ -263,7 +281,10 @@ void TLD::detect(const Mat& frame){
 			temp.pattern[i]=ferns;
 			if(conf>numtrees*fern_th) dt.win.push_back(i);//have the target
 		}
-		else temp.conf[i]=0.0;
+		else{
+			temp.conf[i]=0.0;
+		}
+			
 	}
 	int detections=dt.win.size();
 	cout<<a<<" windows passed variance filter\n";
@@ -391,7 +412,7 @@ void TLD::buildgrid(const Mat& img,const Rect& ROI){
 				win.y=y;
 				win.width=width;
 				win.height=height;
-				win.overlap=winOverlap(win,window(win));
+				win.overlap=winOverlap(win,window(ROI));
 				win.scaleIndex=sc;
 				grid.push_back(win);
 			}
@@ -431,10 +452,10 @@ void TLD::getOverlapWin(const window& box1,int num_closest){
       }
   }
   //Get the best num_closest (10) boxes and puts them in good_boxes
-  if (goodWindow.size()>num_closest){
-    nth_element(goodWindow.begin(),goodWindow.begin()+num_closest,goodWindow.end(),OComparator(grid));
-    goodWindow.resize(num_closest);
-  }
+	if (goodWindow.size()>num_closest){
+		nth_element(goodWindow.begin(),goodWindow.begin()+num_closest,goodWindow.end(),OComparator(grid));
+		goodWindow.resize(num_closest);
+	}
   getHull();
 }
 
@@ -456,7 +477,7 @@ void TLD::getHull(){
   hull.height = y2 -y1;
 }
 
-bool TLD::winCmp(const window& b1,const window& b2){
+bool winCmp(const window& b1,const window& b2){
   TLD t;
     if (t.winOverlap(b1,b2)<0.5)
       return false;
@@ -464,70 +485,7 @@ bool TLD::winCmp(const window& b1,const window& b2){
       return true;
 }
 
-/*
-int  TLD::clusterWin(const vector<window>& detectWindow,vector<int>& index){
-	const int c=detectWindow.size();
-	//bulid proximity matrix
-	Mat D(c,c,CV_32F);
-	float d;
-	for(int i=0;i<c;i++)
-		for(int j=i+1;j<c;j++){
-			d=1-winOverlap(detectWindow[i],detectWindow[j]);
-			D.at<float>(i,j)=D.at<float>(j,i)=d;
-		}
-	//initalize disjoint clustering
-	int m=c;
-	float *L=new float [c];
-	int* *nodes=new int* [c];
-	int *belongs=new int [c];
-	for(int i=0;i<c;i++) {
-		belongs[i]=i;
-		nodes[i]=new int [2];
-	}
-	//find nearset neighbor
-	for(int it=0;it<c-1;it++){
-		float min_d=1;
-		int node_a,node_b;
-		for(int i=0;i<D.rows;i++)
-			for(int j=i+1;j<D.cols;j++){
-				if(D.at<float>(i,j)<min_d&&belongs[i]!=belongs[j]){
-					min_d=D.at<float>(i,j);
-					node_a=i;
-					node_b=j;
-				}
-			}
-		if(min_d>0.5){
-			int max_idx=0;
-			bool vis;
-			for(int j=0;j<c;j++){
-				vis=false;
-				for(int i=0;i<2*c-1;i++){
-					if(belongs[j]==i){
-						index[j]=max_idx;
-						vis=true;
-					}
-				}
-				if(vis) max_idx++;
-			}
-			return max_idx;
-		}
-		//Merge clusters and assign level 
-		L[m]=min_d;
-		nodes[it][0]=belongs[node_a];
-		nodes[it][1]=belongs[node_b];
-		for(int k=0;k<c;k++){
-			if(belongs[k]==belongs[node_a]||belongs[k]==belongs[node_b])
-				belongs[k]=m;
-		}
-		m++;
-	}
-	delete [] L;
-	delete [] belongs;
-	for(int i=0;i<c-1;i++) delete [] nodes[i];
-	delete [] nodes;
-	return 1;
-}
-*/
+
 void TLD::clusterConf(const vector<window>& detectWindow,const vector<float>& detectConf,vector<window>& clusterWindow,std::vector<float>& cConf){
 	int numWin=detectWindow.size();
 	vector<int>T;
@@ -548,7 +506,8 @@ void TLD::clusterConf(const vector<window>& detectWindow,const vector<float>& de
 		break;
 	default:
 		T=vector<int>(numWin,0);
-		c=partition(detectWindow,T,winCmp);//divide detectWindow into 2 parts based on overlap>0.5
+
+		c=cv::partition(detectWindow,T,winCmp);//divide detectWindow into 2 parts based on overlap>0.5
 		break;
 	}
 	cConf=vector<float>(c);
@@ -581,17 +540,21 @@ void TLD::clusterConf(const vector<window>& detectWindow,const vector<float>& de
 	cout<<endl;
 }
 
-void TLD::FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector<Point2f>ps2,window& next,bool& lastWindowfound){
+void TLD::FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>&ps1,vector<Point2f>&ps2,window& next,bool& lastWindowfound){
+	cout<<"process begin\n";
 	vector<window> clusterWindow;
 	vector<float> cConf;
 	int confidentDetections=0;
 	int detect_idx;
 	///Track
+	cout<<"tracking\n";
 	if(lastWindowfound) track(img1,img2,ps1,ps2);
 	else tracked=false;
 	///detect
+	cout<<"detecting\n";
 	detect(img2);
 	///intergatiom
+	cout<<"intergation\n";
 	if(tracked){
 		next=trackWindow;
 		lastConf=trackConf;
@@ -614,7 +577,7 @@ void TLD::FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector
 			}
 			else{
 				cout<<confidentDetections<<" confident cluster was found\n";
-				int cx=0,cy=0,cw=0,ch=0,close_detections;
+				int cx=0,cy=0,cw=0,ch=0,close_detections=0;
 				for(int i=0;i<detectWindow.size();i++){
 					if(winOverlap(trackWindow,detectWindow[i])>0.7){
 						cx+=detectWindow[i].x;
@@ -653,4 +616,5 @@ void TLD::FrameProcess(const Mat& img1,const Mat& img2,vector<Point2f>ps1,vector
   }
   lastWindow=next;
   if (lastValid) learn(img2);
+  cout<<"process end\n";
 }
